@@ -1,0 +1,18 @@
+BUSCONTROL — versión ampliada funcional
+
+Incluye:
+- Asistente de órdenes en texto: por ejemplo "Bus 700 línea 4 orden 3 7.80h".
+- Selección del día de registro; el servicio se añade a esa fecha.
+- Convierte decimales según la tabla de empresa: 7.80 = 7 h 48 min.
+- Dictado por voz cuando el navegador admite SpeechRecognition.
+- Registro manual, calendario, descansos, cierres/cobros y resumen por tipo.
+- Copia de seguridad y restauración JSON.
+- Datos locales en el navegador.
+
+IMPORTANTE:
+- El asistente de esta versión interpreta órdenes mediante reglas locales; no está conectado a un modelo de IA en la nube.
+- La imagen de cuadrante se previsualiza y se detecta presencia de amarillo, pero no se extraen automáticamente fechas con OCR/visión IA. Se exige confirmación manual para evitar registrar descansos erróneos.
+- Los datos no se sincronizan entre dispositivos.
+- Las fechas de cierre/cobro se repiten cada año según la tabla facilitada. No se aplica una regla de imputación de nómina no confirmada.
+- Para instalar como PWA, aloja la carpeta en un servidor HTTPS y abre el enlace en Chrome Android; elige "Añadir a pantalla de inicio".
+- No es un APK nativo.

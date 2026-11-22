@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="es"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#102746"><title>BusControl</title>
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{--navy:#102746;--blue:#17609a;--green:#16834a;--yellow:#ffe59a;--bg:#f2f5f9;--ink:#17263a;--muted:#65758a;--line:#dce4ed;--red:#a63a3a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{background:linear-gradient(120deg,#102746,#1c5686);color:white;padding:22px max(16px,calc((100% - 1080px)/2))}header h1{margin:0;font-size:24px}header p{margin:5px 0 0;color:#d5e4f2}
+main{max-width:1080px;margin:18px auto;padding:0 14px 42px}.tabs{display:flex;gap:7px;overflow:auto;margin-bottom:15px}.tab{border:0;background:#e1e9f1;color:#213b56;padding:11px 14px;border-radius:11px;font-weight:700;white-space:nowrap}.tab.active{background:var(--navy);color:white}
+.panel{display:none}.panel.active{display:block}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.card{background:white;border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 3px 12px #10274609;margin-bottom:12px}.card h2{font-size:17px;margin:0 0 12px}.metric{font-size:27px;font-weight:800;color:var(--navy)}.muted,small{color:var(--muted)}label{display:block;font-weight:650;margin:10px 0 5px}input,select,textarea{width:100%;padding:11px;border:1px solid #cbd6e2;border-radius:10px;font:inherit;background:white;color:var(--ink)}button{cursor:pointer;font:inherit}.primary{background:var(--blue);color:white;border:0;border-radius:10px;padding:11px 15px;font-weight:700;margin-top:11px}.secondary{background:#eaf0f6;color:#23445f;border:1px solid #d5e0eb;border-radius:10px;padding:10px 13px;font-weight:650;margin-top:8px}.danger{background:#fff0f0;color:var(--red);border:1px solid #f2caca;border-radius:9px;padding:7px 10px}.row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1;min-width:130px}table{border-collapse:collapse;width:100%;font-size:14px}th,td{text-align:left;padding:9px 7px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-size:12px}.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}.day{background:#f5f7fa;border-radius:9px;min-height:70px;padding:6px;font-size:11px;border:1px solid transparent;cursor:pointer;overflow:hidden}.day b{display:block;font-size:14px}.day.rest{background:#ffedb5}.day.pay{background:#dff4e7}.day.work{background:#e0efff}.day.close{border:2px solid #d89c22}.day.selected{outline:3px solid #17609a}.legend{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0;font-size:12px}.dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px}.notice{background:#fff8df;border:1px solid #f0dda0;padding:11px;border-radius:10px;color:#695019;font-size:13px}.success{background:#e8f7ee;border:1px solid #bce5cb;color:#145b32;padding:10px;border-radius:10px;margin-top:10px}.command{font-size:17px;font-weight:600}.pill{display:inline-block;background:#eaf0f6;border-radius:20px;padding:4px 9px;font-size:12px;margin:2px}.empty{padding:20px;text-align:center;color:var(--muted)}.daylist{list-style:none;padding:0;margin:0}.daylist li{padding:10px 0;border-bottom:1px solid var(--line)}footer{font-size:12px;color:var(--muted);padding:15px 3px}
+@media(min-width:700px){.day{min-height:86px;padding:8px}}
+</style></head><body>
+<header><h1>🚌 BusControl</h1><p>Tu jornada, tus servicios, tus descansos y tus nóminas</p>
+<div class="row" style="margin-top:12px"><div><label style="color:#d5e4f2">Conductor</label><input id="driverName" placeholder="Nombre y apellidos"></div><div><label style="color:#d5e4f2">N.º de conductor</label><input id="driverNumber" placeholder="Número de conductor"></div><div><label style="color:#d5e4f2">PIN de conductor</label><input id="driverPin" type="password" inputmode="numeric" placeholder="PIN"></div></div>
+<button class="secondary" id="saveProfile">Guardar datos del conductor</button><small id="profileMsg" style="color:#d5e4f2;margin-left:8px"></small><p style="font-size:11px;color:#d5e4f2;margin:5px 0 0">Los datos se guardan solo en este dispositivo. El PIN no está cifrado ni se envía a la empresa.</p></header>
+<main>
+<nav class="tabs">
+<button class="tab active" data-tab="home">Inicio</button><button class="tab" data-tab="calendarPanel">Calendario y servicios</button><button class="tab" data-tab="stats">Resumen de horas</button><button class="tab" data-tab="assistant">Asistente</button><button class="tab" data-tab="rests">Descansos</button><button class="tab" data-tab="payroll">Cierres y nómina</button><button class="tab" data-tab="reports">Informes PDF</button><button class="tab" data-tab="data">Datos y copia</button>
+</nav>
+<section id="home" class="panel active">
+<div class="grid">
+<div class="card"><small>Horas registradas este mes</small><div class="metric" id="monthHours">0,00 h</div><small id="monthClock">0 h 0 min</small></div>
+<div class="card"><small>Servicios este mes</small><div class="metric" id="monthServices">0</div></div>
+<div class="card"><small>Próximo cierre</small><div class="metric" id="nextClose">—</div><small id="closeIn"></small></div>
+<div class="card"><small>Próximo cobro</small><div class="metric" id="nextPay">—</div></div>
+</div>
+<div class="card"><h2>Resumen del día seleccionado</h2><div class="row"><div><label>Fecha de trabajo</label><input type="date" id="selectedDate"></div><div><label>Total del día</label><div class="metric" id="dayHours">0,00 h</div><small id="dayClock">0 h 0 min</small></div></div><div id="dayServices" class="empty">No hay servicios en este día.</div></div>
+<div class="card"><h2>Últimos servicios</h2><div id="recent" class="empty">Todavía no hay servicios.</div></div>
+</section>
+<section id="stats" class="panel">
+<div class="card"><h2>Resumen de horas</h2><div class="grid"><div><small>Horas del mes actual</small><div class="metric" id="statsMonthHours">0,00 h</div></div><div><small>Días trabajados este mes</small><div class="metric" id="statsMonthDays">0</div></div><div><small>Días trabajados en el año</small><div class="metric" id="statsYearDays">0</div></div><div><small>Horas acumuladas en el año</small><div class="metric" id="statsYearHours">0,00 h</div></div></div></div>
+<div class="card"><h2>Detalle por día</h2><label>Elegir mes</label><input type="month" id="statsMonthPick"><div id="statsDaily"></div></div>
+<div class="card"><h2>Buscar entre fechas y preparar PDF</h2><p class="muted">Selecciona desde y hasta para obtener el total y el detalle de horas de cada día trabajado.</p><div class="row"><div><label>Desde</label><input type="date" id="statsFrom"></div><div><label>Hasta</label><input type="date" id="statsTo"></div></div><button class="primary" id="statsSearch">Calcular periodo</button><div id="statsRangeResult"></div><button class="secondary" id="statsPDF">Descargar PDF del periodo</button></div>
+</section>
+<section id="assistant" class="panel">
+<div class="card">
+<h2>Asistente de registro de servicios</h2>
+<p class="muted">Selecciona primero el día y escribe o dicta el servicio como se lo dirías a una persona.</p>
+<label>Día al que quieres añadir el servicio</label><input type="date" id="assistantDate">
+<label>Escribe la orden</label><textarea id="command" rows="2" class="command" placeholder="Bus 700, línea 4, orden 3, 7.80h"></textarea>
+<div class="row"><button class="primary" id="parseCommand">Interpretar y añadir</button><button class="secondary" id="speak">🎙 Dictar por voz</button></div>
+<div id="parseResult"></div>
+<div class="notice" style="margin-top:12px"><b>Ejemplo:</b> «Bus 700 línea 4 orden 3 7.80 horas». Se registra en el día seleccionado. En el formato de tu empresa, La entrada es el decimal de empresa: 7,80 se convierte a 7 h 48 min.</div>
+</div>
+<div class="card"><h2>Registro manual</h2>
+<div class="row"><div><label>Autobús</label><input id="bus" placeholder="700"></div><div><label>Línea</label><input id="line" placeholder="4"></div><div><label>Orden</label><input id="order" placeholder="3"></div></div>
+<div><label>Horas decimales de empresa</label><input id="decimalHours" inputmode="decimal" placeholder="7,80"><div class="success" id="manualConversion">Escribe las horas de empresa y aquí aparecerá la conversión a horas y minutos reales.</div></div>
+<label>Observaciones (opcional)</label><input id="notes" placeholder="Detalles del servicio">
+<button class="primary" id="manualAdd">Guardar en el día seleccionado</button>
+</div>
+<div class="card"><h2>Servicios del día seleccionado</h2><div id="selectedServices"></div></div>
+</section>
+<section id="calendarPanel" class="panel">
+<div class="card"><div class="row"><div><h2>Calendario</h2></div><div><label>Mes</label><input type="month" id="monthPick"></div></div>
+<div class="legend"><span><i class="dot" style="background:#ffedb5"></i>Descanso</span><span><i class="dot" style="background:#e0efff"></i>Servicio</span><span><i class="dot" style="background:#dff4e7"></i>Cobro</span><span><i class="dot" style="background:white;border:2px solid #d89c22"></i>Cierre</span></div>
+<div class="calendar" id="calendar"></div><p class="muted">1. Pulsa el día. 2. Rellena los datos del servicio en el formulario que aparece debajo.</p></div>
+<div class="card" id="calendarServiceForm"><h2>Registrar servicio del día seleccionado</h2><div class="notice" id="calendarChosenDate">Selecciona un día en el calendario.</div>
+<div class="grid"><div><label>Número de bus</label><input id="calBus" placeholder="700"></div><div><label>Número de horario</label><input id="calSchedule" placeholder="Ej. 12"></div><div><label>Línea</label><input id="calLine" placeholder="4"></div><div><label>Orden</label><input id="calOrder" placeholder="3"></div><div><label>Horas decimales de empresa</label><input id="calDecimal" inputmode="decimal" placeholder="7,80"><div class="success" id="calConversion">Introduce las horas decimales de empresa para ver aquí el tiempo real convertido.</div></div></div>
+<label>Observaciones (opcional)</label><input id="calNotes" placeholder="Detalles del servicio"><button class="primary" id="calSaveService">Guardar servicio en este día</button><div id="calSaveMessage"></div></div>
+<div class="card"><h2>Servicios registrados en el día</h2><div id="calendarDayServices"></div></div>
+</section>
+<section id="rests" class="panel">
+<div class="card"><h2>Importar cuadrante de descansos</h2>
+<label>Sube una foto o captura</label><input type="file" id="restImage" accept="image/*">
+<div id="imgPreview"></div>
+<div id="yellowInfo" class="muted"></div>
+<label>Fechas amarillas identificadas (revisar y confirmar)</label><textarea id="restInput" rows="3" placeholder="Introduce las fechas en formato AAAA-MM-DD, separadas por comas. Ej.: 2026-11-18, 2026-11-19"></textarea>
+<button class="primary" id="saveRests">Guardar descansos en calendario</button><div id="restMessage"></div>
+<div class="notice" style="margin-top:12px">La app detecta las zonas amarillas de la imagen, pero para asociarlas correctamente a fechas necesita leer el encabezado y los números del cuadrante. Esta versión no tiene OCR/visión IA conectada; por eso te pide verificar las fechas antes de guardarlas y evita inventarlas.</div>
+</div>
+<div class="card"><h2>Descansos guardados</h2><div id="restList"></div></div>
+</section>
+<section id="payroll" class="panel">
+<div class="card"><h2>Calendario anual de cierres y cobros</h2><p class="muted">Se repite anualmente según las fechas que has facilitado.</p><div style="overflow:auto"><table><thead><tr><th>Mes</th><th>Cierre de horas</th><th>Cobro de nómina</th></tr></thead><tbody id="payRows"></tbody></table></div></div>
+<div class="card"><h2>Horas por tipo (mes seleccionado)</h2><div id="typeTotals" class="grid"></div></div>
+<div class="notice">Todavía no se asignan automáticamente las horas a una nómina: falta confirmar si el periodo empieza justo después del cierre anterior o si la empresa utiliza otra regla.</div>
+</section>
+
+<section id="reports" class="panel">
+<div class="card">
+<h2>Informe de horas y días trabajados</h2>
+<p class="muted">Elige cualquier fecha de inicio y fin. El informe incluirá los servicios registrados dentro del periodo y los descansos guardados en el calendario.</p>
+<div class="row"><div><label>Desde</label><input type="date" id="reportFrom"></div><div><label>Hasta</label><input type="date" id="reportTo"></div></div>
+<button class="primary" id="makeReport">Generar resumen</button>
+<button class="secondary" id="downloadPDF">Descargar informe PDF</button>
+<div id="reportOutput" style="margin-top:14px"><div class="empty">Selecciona el periodo y pulsa «Generar resumen».</div></div>
+<div class="notice" style="margin-top:12px">Los días trabajados se cuentan como fechas distintas con al menos un servicio. Los días de descanso se cuentan según las fechas amarillas que hayas confirmado y guardado.</div>
+</div>
+</section>
+
+<section id="data" class="panel">
+<div class="card"><h2>Copia de seguridad</h2><p class="muted">Tus datos se guardan en este navegador. Exporta una copia para no perderlos al cambiar de móvil o navegador.</p><button class="primary" id="exportData">Exportar copia JSON</button><label>Restaurar copia JSON</label><input type="file" id="restoreFile" accept=".json,application/json"><button class="secondary" id="restoreData">Restaurar datos</button><div id="backupMsg"></div></div>
+<div class="card"><h2>Configuración de datos</h2><p>Los datos de esta versión se guardan localmente en el dispositivo. No se envían a un servidor ni se sincronizan entre móviles.</p><button class="danger" id="deleteAll">Borrar todos los datos</button></div>
+</section>
+<footer>BusControl · Datos guardados localmente en este navegador. Exporta copias periódicas y no borres los datos del navegador.</footer>
+
+<button id="aiFab" aria-label="Abrir asistente IA" style="position:fixed;right:18px;bottom:22px;z-index:20;border:0;border-radius:50%;width:60px;height:60px;background:#17609a;color:white;font-size:25px;box-shadow:0 4px 18px #10274655">✦</button>
+<div id="aiPanel" style="display:none;position:fixed;right:12px;bottom:92px;z-index:21;width:min(370px,calc(100vw - 24px));background:white;border:1px solid #cbd6e2;border-radius:16px;padding:14px;box-shadow:0 8px 30px #10274633">
+<div style="display:flex;justify-content:space-between;align-items:center"><b>Asistente BusControl</b><button id="aiClose" class="secondary">Cerrar</button></div>
+<p class="muted" style="font-size:13px">Pídele que registre un servicio o consulte tus horas. Ejemplo: «Añade bus 700, horario 12, línea 4, orden 3, 7,80 horas al día seleccionado».</p>
+<textarea id="aiPrompt" rows="3" placeholder="Escribe lo que necesitas..."></textarea><button class="primary" id="aiSend">Enviar</button><div id="aiReply" style="margin-top:10px;font-size:14px"></div></div>
+</main>
+<script>
+const $=id=>document.getElementById(id), months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'], closes=[11,8,8,12,10,14,12,9,13,11,8,13], pays=[30,27,31,30,29,30,31,31,30,30,30,30];
+const today=new Date(), pad=n=>String(n).padStart(2,'0'), dateISO=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+let db;try{db=JSON.parse(localStorage.getItem('buscontrol-v2')||'{"services":[],"rests":[],"profile":{}}')}catch{db={services:[],rests:[],profile:{}}} db.profile=db.profile||{}; db.services=db.services||[]; db.rests=db.rests||[];
+const persist=()=>localStorage.setItem('buscontrol-v2',JSON.stringify(db));
+const decToMinutes=v=>Math.round(Number(v)*100)/100; // value kept as decimal hundredths for display; conversion below uses hundredths as minute-table fraction
+function decimalToMins(v){let s=String(v).replace(',','.');let n=Number(s);if(!Number.isFinite(n)||n<0)return null;let whole=Math.floor(n+1e-9),frac=Math.round((n-whole)*100);if(frac<0||frac>99)return null;let mins=Math.round(frac*60/100);if(mins===60){whole++;mins=0}return whole*60+mins}
+function minsToDecimal(mins){let h=Math.floor(mins/60),m=mins%60;return (h+m/60).toFixed(2)}
+function clock(mins){return `${Math.floor(mins/60)} h ${mins%60} min`}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function selected(){return $('selectedDate').value||dateISO(new Date())}
+function servicesFor(date){return db.services.filter(s=>s.date===date)}
+function totalFor(arr){return arr.reduce((a,s)=>a+s.minutes,0)}
+function addService(obj){db.services.push({...obj,id:(crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()))});persist();refresh()}
+function addFromDecimal(date,bus,line,order,value,kind='Normal',notes='',schedule=''){let mins=decimalToMins(value);if(mins===null||mins<=0)throw Error('La duración debe ser un número decimal positivo, por ejemplo 7,80.');addService({date,bus:String(bus||''),schedule:String(schedule||''),line:String(line||''),order:String(order||''),minutes:mins,decimal:minsToDecimal(mins),kind,notes});}
+function renderSelected(){let date=selected(),arr=servicesFor(date),total=totalFor(arr);$('dayHours').textContent=minsToDecimal(total).replace('.',',')+' h';$('dayClock').textContent=clock(total);$('dayServices').innerHTML=arr.length?arr.map(s=>`<div class="pill">Bus ${esc(s.bus||'—')} · Línea ${esc(s.line||'—')} · Orden ${esc(s.order||'—')} · ${s.decimal.replace('.',',')} h</div>`).join(''):'No hay servicios en este día.';$('selectedServices').innerHTML=arr.length?`<div style="overflow:auto"><table><thead><tr><th>Bus</th><th>Línea</th><th>Orden</th><th>Duración</th><th>Tipo</th><th></th></tr></thead><tbody>${arr.map(s=>`<tr><td>${esc(s.bus)}</td><td>${esc(s.line)}</td><td>${esc(s.order)}</td><td>${clock(s.minutes)}<br><b>${s.decimal.replace('.',',')} h</b></td><td>${esc(s.kind)}</td><td><button class="danger" onclick="removeService('${s.id}')">Borrar</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">No hay servicios registrados para este día.</div>'}
+window.removeService=id=>{db.services=db.services.filter(s=>s.id!==id);persist();refresh()};
+function renderCalendar(){let [y,m]=($('monthPick').value||dateISO(new Date()).slice(0,7)).split('-').map(Number),first=new Date(y,m-1,1),offset=(first.getDay()+6)%7,n=new Date(y,m,0).getDate(),html=['L','M','X','J','V','S','D'].map(x=>`<div style="text-align:center;font-weight:700;color:#65758a">${x}</div>`).join('');for(let i=0;i<offset;i++)html+='<div></div>';for(let d=1;d<=n;d++){let dt=`${y}-${pad(m)}-${pad(d)}`,rest=db.rests.includes(dt),work=servicesFor(dt).length>0,cl=d===closes[m-1],pay=d===pays[m-1],cls=rest?'rest':work?'work':pay?'pay':'',sel=selected()===dt;html+=`<div class="day ${cls} ${cl?'close':''} ${sel?'selected':''}" data-date="${dt}"><b>${d}</b>${rest?'Descanso':work?'Servicio':''}${cl?'<br>Cierre':''}${pay?'<br>Cobro':''}</div>`}$('calendar').innerHTML=html;document.querySelectorAll('.day[data-date]').forEach(el=>el.onclick=()=>{setDate(el.dataset.date);$('selectedDate').value=el.dataset.date;$('assistantDate').value=el.dataset.date;renderCalendar();renderSelected();$('calendarChosenDate').textContent='Fecha seleccionada: '+el.dataset.date;renderCalendarServices()})}
+function renderCalendarServices(){let arr=servicesFor(selected());$('calendarDayServices').innerHTML=arr.length?`<div style="overflow:auto"><table><thead><tr><th>Bus</th><th>Horario</th><th>Línea</th><th>Orden</th><th>Horas empresa</th><th>Tiempo real</th></tr></thead><tbody>${arr.map(s=>`<tr><td>${esc(s.bus)}</td><td>${esc(s.schedule||'—')}</td><td>${esc(s.line)}</td><td>${esc(s.order)}</td><td>${String(s.decimal).replace('.',',')} h</td><td>${clock(s.minutes)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">No hay servicios en esta fecha.</div>'}
+function renderStats(){let now=new Date(),ym=$('statsMonthPick').value||dateISO(now).slice(0,7),yr=ym.slice(0,4),month=db.services.filter(s=>s.date.startsWith(ym)),year=db.services.filter(s=>s.date.startsWith(yr));$('statsMonthHours').textContent=minsToDecimal(totalFor(month)).replace('.',',')+' h';$('statsMonthDays').textContent=new Set(month.map(s=>s.date)).size;$('statsYearDays').textContent=new Set(year.map(s=>s.date)).size;$('statsYearHours').textContent=minsToDecimal(totalFor(year)).replace('.',',')+' h';let by={};month.forEach(s=>by[s.date]=(by[s.date]||0)+s.minutes);$('statsDaily').innerHTML=Object.keys(by).sort().map(d=>`<div class="row" style="padding:8px 0;border-bottom:1px solid var(--line)"><div>${d}</div><div><b>${minsToDecimal(by[d]).replace('.',',')} h</b><br><small>${clock(by[d])}</small></div><div>${month.filter(s=>s.date===d).length} servicios</div></div>`).join('')||'<div class="empty">Todavía no hay horas registradas en este mes.</div>'}
+function saveProfile(){db.profile={name:$('driverName').value.trim(),number:$('driverNumber').value.trim(),pin:$('driverPin').value};persist();$('profileMsg').textContent='Datos guardados en este dispositivo.'}
+function loadProfile(){ $('driverName').value=db.profile.name||'';$('driverNumber').value=db.profile.number||'';$('driverPin').value=db.profile.pin||'' }
+function renderPayroll(){ $('payRows').innerHTML=months.map((m,i)=>`<tr><td>${m}</td><td>${closes[i]}</td><td>${pays[i]}</td></tr>`).join('');let ym=$('monthPick').value||dateISO(new Date()).slice(0,7),arr=db.services.filter(s=>s.date.startsWith(ym)),types=['Normal','Extraordinaria','Nocturna','Festivo'];$('typeTotals').innerHTML=types.map(t=>{let min=totalFor(arr.filter(s=>s.kind===t));return `<div class="card"><small>${t}</small><div class="metric">${minsToDecimal(min).replace('.',',')} h</div><small>${clock(min)}</small></div>`}).join('')}
+function refresh(){let ym=dateISO(new Date()).slice(0,7),arr=db.services.filter(s=>s.date.startsWith(ym)),mins=totalFor(arr);$('monthHours').textContent=minsToDecimal(mins).replace('.',',')+' h';$('monthClock').textContent=clock(mins);$('monthServices').textContent=arr.length;
+let now=new Date(),events=[];for(let k=0;k<14;k++){let dt=new Date(now.getFullYear(),now.getMonth()+k,1),c=new Date(dt.getFullYear(),dt.getMonth(),closes[dt.getMonth()]),p=new Date(dt.getFullYear(),dt.getMonth(),pays[dt.getMonth()]);for(let [d,t] of [[c,'cierre'],[p,'cobro']])if(d>=new Date(now.getFullYear(),now.getMonth(),now.getDate()))events.push({d,t})}events.sort((a,b)=>a.d-b.d);let c=events.find(e=>e.t==='cierre'),p=events.find(e=>e.t==='cobro');$('nextClose').textContent=c?c.d.toLocaleDateString('es-ES',{day:'2-digit',month:'short'}):'—';$('closeIn').textContent=c?`Quedan ${Math.ceil((c.d-now)/86400000)} días`:' ';$('nextPay').textContent=p?p.d.toLocaleDateString('es-ES',{day:'2-digit',month:'short'}):'—';
+$('recent').innerHTML=db.services.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6).map(s=>`<div class="daylist"><li><b>${s.date}</b> · Bus ${esc(s.bus)} · Línea ${esc(s.line)} · Orden ${esc(s.order)} · ${s.decimal.replace('.',',')} h</li></div>`).join('')||'Todavía no hay servicios.';
+renderSelected();renderCalendar();renderCalendarServices();$('calendarChosenDate').textContent='Fecha seleccionada: '+selected();renderPayroll();renderStats();$('restList').innerHTML=db.rests.length?db.rests.slice().sort().map(d=>`<div class="row" style="align-items:center"><div>${d}</div><button class="danger" onclick="removeRest('${d}')">Quitar</button></div>`).join(''):'No hay descansos guardados.'}
+window.removeRest=d=>{db.rests=db.rests.filter(x=>x!==d);persist();refresh()};
+function setDate(d){$('selectedDate').value=d;$('assistantDate').value=d}
+function parseCommand(raw){let t=raw.toLowerCase().replace(/,/g,' ').replace(/\s+/g,' ').trim();let bus=t.match(/\bbus(?:\s+n(?:ú|u)mero)?\s*[:#-]?\s*(\d{1,5})\b/),line=t.match(/\bl[ií]nea\s*[:#-]?\s*(\d{1,4})\b/),ord=t.match(/\b(?:orden|ord)\s*[:#-]?\s*(\d{1,4})\b/);let dur=t.match(/\b(\d{1,3}(?:[.,]\d{1,2})?)\s*(?:h|hora(?:s)?)\b/);if(!dur)dur=t.match(/\b(\d{1,3}[.,]\d{1,2})\b/);if(!bus||!line||!ord||!dur)return {error:'No he podido reconocer todos los datos. Indica bus, línea, orden y duración. Ejemplo: Bus 700 línea 4 orden 3 7.80h.'};let val=dur[1].replace(',','.');let mins=decimalToMins(val);if(!mins||mins<=0)return {error:'La duración no es válida.'};let kind='Normal';if(/\bextra(?:ordinaria)?s?\b/.test(t))kind='Extraordinaria';else if(/\bnocturn[oa]s?\b/.test(t))kind='Nocturna';else if(/\bfestiv[oa]s?\b/.test(t))kind='Festivo';return {bus:bus[1],line:line[1],order:ord[1],decimal:minsToDecimal(mins),minutes:mins,kind}}
+$('parseCommand').onclick=()=>{let date=$('assistantDate').value||selected(),p=parseCommand($('command').value);if(p.error){$('parseResult').innerHTML=`<div class="notice">${p.error}</div>`;return}addService({date,bus:p.bus,line:p.line,order:p.order,minutes:p.minutes,decimal:p.decimal,kind:p.kind,notes:'Añadido mediante asistente'});$('selectedDate').value=date;$('selectedDate').value=date;$('parseResult').innerHTML=`<div class="success">Registrado en ${date}: Bus ${p.bus}, línea ${p.line}, orden ${p.order}, ${clock(p.minutes)} (${p.decimal.replace('.',',')} h).</div>`;$('command').value='';$('assistantDate').value=date;refresh()};
+$('manualAdd').onclick=()=>{try{let date=selected();addFromDecimal(date,$('bus').value,$('line').value,$('order').value,$('decimalHours').value,'Normal',$('notes').value);$('notes').value='';$('decimalHours').value='';$('bus').value='';$('line').value='';$('order').value='';alert('Servicio guardado en '+date); }catch(e){alert(e.message)}};
+$('saveProfile').onclick=saveProfile;loadProfile();
+$('decimalHours').oninput=()=>{let m=decimalToMins($('decimalHours').value);$('manualConversion').textContent=m&&m>0?'Tiempo real convertido: '+clock(m)+'.':'Escribe las horas de empresa y aquí aparecerá la conversión a horas y minutos reales.'};
+
+$('calDecimal').oninput=()=>{let v=$('calDecimal').value.trim(),m=decimalToMins(v);$('calConversion').textContent=m&&m>0?`Conversión definitiva: ${clock(m)} de tiempo real (equivale a ${minsToDecimal(m).replace('.',',')} h en formato decimal de empresa).`:'Conversión definitiva: introduce las horas decimales para ver el tiempo real.'};
+$('calSaveService').onclick=()=>{try{let date=selected();if(!date)throw Error('Selecciona primero un día del calendario.');addFromDecimal(date,$('calBus').value,$('calLine').value,$('calOrder').value,$('calDecimal').value,'Normal',$('calNotes').value,$('calSchedule').value);['calBus','calSchedule','calLine','calOrder','calDecimal','calNotes'].forEach(id=>$(id).value='');$('calConversion').textContent='Introduce las horas decimales de empresa para ver aquí el tiempo real convertido.';$('calSaveMessage').innerHTML='<div class="success">Servicio guardado en '+date+'.</div>';refresh()}catch(e){$('calSaveMessage').innerHTML='<div class="notice">'+esc(e.message)+'</div>'}};
+$('statsMonthPick').onchange=renderStats;$('statsSearch').onclick=()=>{try{let f=$('statsFrom').value,t=$('statsTo').value;if(!f||!t||f>t)throw Error('Indica un intervalo de fechas válido.');let arr=db.services.filter(s=>s.date>=f&&s.date<=t),by={};arr.forEach(s=>by[s.date]=(by[s.date]||0)+s.minutes);let total=totalFor(arr);$('statsRangeResult').innerHTML=`<div class="success"><b>Periodo: ${f} a ${t}</b><br><b>Total del periodo: ${minsToDecimal(total).replace('.',',')} h (${clock(total)})</b><br>Días trabajados: ${Object.keys(by).length}</div>`+Object.keys(by).sort().map(d=>`<div class="card"><b>${d}</b> — Total del día: ${minsToDecimal(by[d]).replace('.',',')} h (${clock(by[d])})<table><thead><tr><th>Bus</th><th>Horario</th><th>Línea</th><th>Orden</th><th>Horas empresa</th><th>Tiempo real</th></tr></thead><tbody>${arr.filter(s=>s.date===d).map(s=>`<tr><td>${esc(s.bus)}</td><td>${esc(s.schedule||'—')}</td><td>${esc(s.line)}</td><td>${esc(s.order)}</td><td>${String(s.decimal).replace('.',',')}</td><td>${clock(s.minutes)}</td></tr>`).join('')}</tbody></table></div>`).join('')}catch(e){$('statsRangeResult').innerHTML='<div class="notice">'+esc(e.message)+'</div>'}};
+$('statsPDF').onclick=()=>{try{let f=$('statsFrom').value,t=$('statsTo').value;if(!f||!t||f>t)throw Error('Indica un intervalo válido y pulsa Calcular periodo.');$('reportFrom').value=f;$('reportTo').value=t;lastReport=getReport();$('downloadPDF').click()}catch(e){alert(e.message)}};
+$('selectedDate').onchange=e=>{setDate(e.target.value);refresh()};$('assistantDate').onchange=e=>{setDate(e.target.value);refresh()};$('monthPick').onchange=refresh;
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab,.panel').forEach(x=>x.classList.remove('active'));b.classList.add('active');$(b.dataset.tab).classList.add('active');refresh()});
+$('speak').onclick=()=>{let SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){$('parseResult').innerHTML='<div class="notice">El dictado por voz no está disponible en este navegador. Puedes escribir la orden.</div>';return}let r=new SR();r.lang='es-ES';r.onresult=e=>{$('command').value=e.results[0][0].transcript};r.onerror=()=>{$('parseResult').innerHTML='<div class="notice">No se pudo reconocer la voz. Prueba a escribir la orden.</div>'};r.start()};
+$('restImage').onchange=e=>{let f=e.target.files[0];if(!f)return;let url=URL.createObjectURL(f),img=new Image();img.onload=()=>{let c=document.createElement('canvas'),ctx=c.getContext('2d'),scale=Math.min(1,900/img.width);c.width=img.width*scale;c.height=img.height*scale;ctx.drawImage(img,0,0,c.width,c.height);let data=ctx.getImageData(0,0,c.width,c.height).data,n=0;for(let i=0;i<data.length;i+=4){let r=data[i],g=data[i+1],b=data[i+2];if(r>185&&g>135&&b<165&&r>g*1.04&&g>b*1.12)n++}let pct=(100*n/(c.width*c.height)).toFixed(1);$('imgPreview').innerHTML=`<img src="${url}" style="max-width:100%;max-height:320px;border-radius:10px;margin-top:10px">`;$('yellowInfo').textContent=`Señal de color amarillo detectada en aproximadamente ${pct}% de la imagen. Comprueba visualmente qué fechas corresponden a esas casillas.`};img.src=url};
+$('saveRests').onclick=()=>{let raw=$('restInput').value.split(/[,;\s]+/).filter(Boolean),valid=raw.filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)&&!isNaN(new Date(d+'T12:00:00').getTime())),added=0;valid.forEach(d=>{if(!db.rests.includes(d)){db.rests.push(d);added++}});persist();refresh();$('restMessage').innerHTML=`<div class="success">Añadidos ${added} descansos. Fechas inválidas ignoradas: ${raw.length-valid.length}.</div>`};
+$('exportData').onclick=()=>{let blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='buscontrol-copia-'+dateISO(new Date())+'.json';a.click();URL.revokeObjectURL(a.href)};
+let restore=null;$('restoreFile').onchange=e=>{let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{restore=JSON.parse(r.result);$('backupMsg').textContent='Copia leída. Pulsa Restaurar datos para confirmar.'}catch{$('backupMsg').textContent='El archivo no es una copia válida.'}};r.readAsText(f)};
+$('restoreData').onclick=()=>{if(!restore||!Array.isArray(restore.services)||!Array.isArray(restore.rests))return alert('Selecciona una copia válida.');db=restore;db.profile=db.profile||{};persist();loadProfile();refresh();$('backupMsg').textContent='Datos restaurados.'};
+$('deleteAll').onclick=()=>{if(confirm('¿Borrar todos los servicios y descansos de este dispositivo?')){db={services:[],rests:[],profile:db.profile||{}};persist();refresh()}};
+
+function getReport(){
+ const from=$('reportFrom').value,to=$('reportTo').value;
+ if(!from||!to||from>to)throw Error('Selecciona un intervalo válido: la fecha inicial debe ser anterior o igual a la final.');
+ const sv=db.services.filter(s=>s.date>=from&&s.date<=to).sort((a,b)=>a.date.localeCompare(b.date));
+ const rests=db.rests.filter(d=>d>=from&&d<=to).sort();
+ const worked=[...new Set(sv.map(s=>s.date))].sort();
+ const total=totalFor(sv);
+ const typeTotals={};sv.forEach(s=>typeTotals[s.kind]=(typeTotals[s.kind]||0)+s.minutes);const dayTotals={};sv.forEach(s=>dayTotals[s.date]=(dayTotals[s.date]||0)+s.minutes);
+ return {from,to,sv,rests,worked,total,typeTotals,dayTotals};
+}
+function reportHTML(r){
+ const types=Object.entries(r.typeTotals).map(([k,v])=>`<tr><td>${esc(k)}</td><td>${minsToDecimal(v).replace('.',',')} h</td><td>${clock(v)}</td></tr>`).join('');
+ const rows=r.sv.map(s=>`<tr><td>${s.date}</td><td>${esc(s.bus||'—')}</td><td>${esc(s.schedule||'—')}</td><td>${esc(s.line||'—')}</td><td>${esc(s.order||'—')}</td><td>${s.decimal.replace('.',',')} h</td><td>${esc(s.kind)}</td></tr>`).join('');
+ return `<div class="grid">
+ <div class="card"><small>Total de horas</small><div class="metric">${minsToDecimal(r.total).replace('.',',')} h</div><small>${clock(r.total)}</small></div>
+ <div class="card"><small>Días trabajados</small><div class="metric">${r.worked.length}</div></div>
+ <div class="card"><small>Días de descanso registrados</small><div class="metric">${r.rests.length}</div></div>
+ <div class="card"><small>Servicios registrados</small><div class="metric">${r.sv.length}</div></div>
+ </div>
+ <h3>Totales por día trabajado</h3><table><thead><tr><th>Fecha</th><th>Total del día</th><th>Tiempo real</th></tr></thead><tbody>${Object.keys(r.dayTotals).sort().map(d=>`<tr><td>${d}</td><td>${minsToDecimal(r.dayTotals[d]).replace('.',',')} h</td><td>${clock(r.dayTotals[d])}</td></tr>`).join('')||'<tr><td colspan="3">Sin días trabajados</td></tr>'}</tbody></table>
+ <h3>Horas por tipo</h3><table><thead><tr><th>Tipo</th><th>Horas empresa</th><th>Tiempo real</th></tr></thead><tbody>${types||'<tr><td colspan="3">Sin servicios</td></tr>'}</tbody></table>
+ <h3 style="margin-top:18px">Detalle de servicios</h3><div style="overflow:auto"><table><thead><tr><th>Fecha</th><th>Bus</th><th>Horario</th><th>Línea</th><th>Orden</th><th>Horas</th><th>Tipo</th></tr></thead><tbody>${rows||'<tr><td colspan="7">Sin servicios en el periodo</td></tr>'}</tbody></table></div>
+ <h3 style="margin-top:18px">Descansos</h3><p>${r.rests.length?r.rests.join(' · '):'No hay descansos guardados en este periodo.'}</p>`;
+}
+let lastReport=null;
+$('makeReport').onclick=()=>{try{lastReport=getReport();$('reportOutput').innerHTML=reportHTML(lastReport)}catch(e){$('reportOutput').innerHTML=`<div class="notice">${esc(e.message)}</div>`}};
+function pdfEscape(s){return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\x20-\x7E]/g,' ').replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)')}
+function makeSimplePDF(lines){
+ const wrapped=[];lines.forEach(line=>{let s=String(line);while(s.length>88){wrapped.push(s.slice(0,88));s=s.slice(88)}wrapped.push(s)});
+ const pages=[];for(let i=0;i<wrapped.length;i+=48)pages.push(wrapped.slice(i,i+48));
+ const objects=[];const add=o=>(objects.push(o),objects.length);
+ const catalogId=add('');const pagesId=add('');const fontId=add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+ const pageIds=[];
+ pages.forEach(linesPage=>{
+  let stream='BT\n/F1 10 Tf\n48 790 Td\n14 TL\n';
+  linesPage.forEach((line,i)=>{if(i)stream+='T*\n';stream+=`(${pdfEscape(line)}) Tj\n`});
+  stream+='ET';
+  const contentId=add(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);
+  const pageId=add(`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 ${fontId} 0 R >> >> /Contents ${contentId} 0 R >>`);
+  pageIds.push(pageId);
+ });
+ objects[catalogId-1]=`<< /Type /Catalog /Pages ${pagesId} 0 R >>`;
+ objects[pagesId-1]=`<< /Type /Pages /Kids [${pageIds.map(id=>id+' 0 R').join(' ')}] /Count ${pageIds.length} >>`;
+ let pdf='%PDF-1.4\n',offsets=[0];
+ objects.forEach((o,i)=>{offsets.push(pdf.length);pdf+=`${i+1} 0 obj\n${o}\nendobj\n`});
+ const xref=pdf.length;pdf+=`xref\n0 ${objects.length+1}\n0000000000 65535 f \n`;
+ for(let i=1;i<offsets.length;i++)pdf+=String(offsets[i]).padStart(10,'0')+' 00000 n \n';
+ pdf+=`trailer\n<< /Size ${objects.length+1} /Root ${catalogId} 0 R >>\nstartxref\n${xref}\n%%EOF`;
+ return new Blob([pdf],{type:'application/pdf'});
+}
+$('downloadPDF').onclick=()=>{
+ try{
+  const r=lastReport||getReport();
+  const lines=['BUSCONTROL - INFORME DE JORNADA','Conductor: '+(db.profile?.name||'-'),'Numero de conductor: '+(db.profile?.number||'-'),'Periodo: '+r.from+' a '+r.to,'','RESUMEN','Total horas (formato empresa): '+minsToDecimal(r.total)+' h','Tiempo equivalente: '+clock(r.total),'Dias trabajados: '+r.worked.length,'Dias de descanso registrados: '+r.rests.length,'Servicios registrados: '+r.sv.length,'','HORAS POR TIPO'];
+  Object.entries(r.typeTotals).forEach(([k,v])=>lines.push(k+': '+minsToDecimal(v)+' h ('+clock(v)+')'));
+  lines.push('','DETALLE DE SERVICIOS','Fecha | Bus | Horario | Linea | Orden | Horas | Tipo');
+  r.worked.forEach(d=>{lines.push('','DIA '+d+' - TOTAL: '+minsToDecimal(r.dayTotals[d])+' h ('+clock(r.dayTotals[d])+')');r.sv.filter(s=>s.date===d).forEach(s=>lines.push('Bus '+(s.bus||'-')+' | Horario '+(s.schedule||'-')+' | Linea '+(s.line||'-')+' | Orden '+(s.order||'-')+' | '+s.decimal+' h = '+clock(s.minutes)));});
+  lines.push('','DESCANSOS REGISTRADOS');
+  if(r.rests.length)r.rests.forEach(d=>lines.push(d));else lines.push('No hay descansos guardados en el periodo.');
+  lines.push('','Informe generado por BusControl. Comprueba los datos antes de usarlo como justificante.');
+  const blob=makeSimplePDF(lines),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`BusControl_informe_${r.from}_${r.to}.pdf`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+ }catch(e){alert(e.message)}
+};
+const todayISO=dateISO(new Date());$('reportFrom').value=todayISO.slice(0,8)+'01';$('reportTo').value=todayISO;
+
+let current=dateISO(new Date());$('selectedDate').value=current;$('assistantDate').value=current;$('monthPick').value=current.slice(0,7);$('statsMonthPick').value=current.slice(0,7);$('statsFrom').value=current.slice(0,8)+'01';$('statsTo').value=current;refresh();
+
+$('aiFab').onclick=()=>{$('aiPanel').style.display='block';$('aiPrompt').focus()};
+$('aiClose').onclick=()=>{$('aiPanel').style.display='none'};
+$('aiSend').onclick=()=>{
+ const q=$('aiPrompt').value.trim(),low=q.toLowerCase(),date=selected();
+ if(!q)return;
+ // Assistant performs deterministic local actions; it does not call a cloud AI.
+ const parsed=parseCommand(q);
+ if(parsed && !parsed.error){
+   const schedule=(q.match(/horario\s*[:#-]?\s*(\d+)/i)||[])[1]||'';
+   addService({date,bus:parsed.bus,schedule,line:parsed.line,order:parsed.order,minutes:parsed.minutes,decimal:parsed.decimal,kind:'Normal',notes:'Añadido desde asistente'});
+   $('aiReply').innerHTML='<div class="success">Servicio añadido al '+date+': bus '+esc(parsed.bus)+', horario '+esc(schedule||'—')+', línea '+esc(parsed.line)+', orden '+esc(parsed.order)+'. Tiempo real: '+clock(parsed.minutes)+'.</div>';
+ }else if(/cu[aá]ntas horas|resumen|total|horas del mes|horas del a[nñ]o|d[ií]as trabajados/.test(low)){
+   const from=(q.match(/\b\d{4}-\d{2}-\d{2}\b/g)||[])[0],to=(q.match(/\b\d{4}-\d{2}-\d{2}\b/g)||[])[1];
+   let arr=db.services;
+   if(from&&to)arr=arr.filter(s=>s.date>=from&&s.date<=to);else if(/mes/.test(low)){let ym=date.slice(0,7);arr=arr.filter(s=>s.date.startsWith(ym))}else if(/a[nñ]o/.test(low)){arr=arr.filter(s=>s.date.startsWith(date.slice(0,4)))}else arr=arr.filter(s=>s.date===date);
+   const total=totalFor(arr),days=new Set(arr.map(s=>s.date)).size;
+   $('aiReply').innerHTML='<div class="success">Resultado: '+minsToDecimal(total).replace('.',',')+' h de empresa ('+clock(total)+'), en '+days+' días trabajados y '+arr.length+' servicios.</div>';
+ }else{
+   $('aiReply').innerHTML='<div class="notice">No he podido interpretar la petición. Para registrar, indica bus, horario, línea, orden y duración (por ejemplo: «bus 700 horario 12 línea 4 orden 3 7,80 horas»). Puedo consultar horas del día, mes, año o entre dos fechas ISO.</div>';
+ }
+ $('aiPrompt').value='';refresh();
+};
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+</script></body></html>
